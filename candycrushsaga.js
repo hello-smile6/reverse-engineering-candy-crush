@@ -144,12 +144,14 @@ if (ENVIRONMENT_IS_NODE) {
   {
     read_ = function shell_read(url) {
       var xhr = new XMLHttpRequest();
+      console.log(url);
       xhr.open("GET", url, false);
       xhr.send(null);
       return xhr.responseText;
     };
     if (ENVIRONMENT_IS_WORKER) {
       readBinary = function readBinary(url) {
+        console.log(url);
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, false);
         xhr.responseType = "arraybuffer";
@@ -158,6 +160,7 @@ if (ENVIRONMENT_IS_NODE) {
       };
     }
     readAsync = function readAsync(url, onload, onerror) {
+        console.log(url);
       var xhr = new XMLHttpRequest();
       xhr.open("GET", url, true);
       xhr.responseType = "arraybuffer";
@@ -11067,7 +11070,7 @@ var GL = {
       }
     },
   createContext: function (canvas, webGLContextAttributes) {
-    if(!(canvas instanceof HTMLCanvasElement)) debugger;
+    if(!(canvas instanceof HTMLCanvasElement)) debugger;return
     var ctx = canvas.getContext("webgl", webGLContextAttributes);
     if (!ctx) return 0;
     var handle = GL.registerContext(ctx, webGLContextAttributes);
