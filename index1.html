@@ -94,6 +94,7 @@
     }
 
     function trackCanvasManagerCheckpoint(commonParameters, checkpoint) {
+        return "Fuck you, king.com. We don't need to track this shit.";
         var funnelId = window.TrackingFunnelId || (window.TrackingFunnelId = generateUUID());
         var rpc = new JsonRpcEndpoint("/rpc/ClientApi" + (location.search || ""));
         rpc.remoteCall("TrackingApi.track", [
