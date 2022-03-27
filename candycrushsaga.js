@@ -17,6 +17,9 @@ hello-smile6.github.io/:1
 Module.printWarn = function (text) {
     console.warn(text);
 };
+Module.print = function (text) {
+    console.log(text);
+};
 var moduleOverrides = {};
 var key;
 for (key in Module) {
@@ -1149,11 +1152,11 @@ var ASM_CONSTS = {
   },
   470768: function ($0) {
     if (
-      typeof king !== "undefined" &&
-      typeof king.ff !== undefined &&
-      typeof king.ff.Breadcrumbs !== undefined
+      typeof king !== "undefined" 
+      // typeof king.ff !== undefined &&
+      // typeof king.ff.Breadcrumbs !== undefined
     ) {
-      king.ff.Breadcrumbs.setMaxMessages($0);
+      // king.ff.Breadcrumbs.setMaxMessages($0);
     }
   },
   470927: function ($0) {
@@ -1804,7 +1807,8 @@ var ASM_CONSTS = {
     var apiName = UTF8ToString($0);
     var url = "";
     if (apiName === "server") {
-      url = emscriptenvars.apiUrl || "";
+      url = emscriptenvars?.apiUrl || "";
+      // TODO: figure out the API URL
     } else if (apiName === "servicelayer") {
       url = Module["ksdk.slayerApiUrl"] || "";
     } else {

@@ -114,6 +114,7 @@
     }
 
     function trackInCompatibilityError(commonParameters, appVersion, errorMessage){
+        return "Fuck you, king.com. We don't need to track this shit.";
         var NO_INSTALL_ID = "";
         var rpc = new JsonRpcEndpoint("/rpc/ClientApi" + (location.search || ""));
         rpc.remoteCall("AppClientHealthTracking.trackCrashReport2", [
