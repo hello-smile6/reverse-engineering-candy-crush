@@ -1807,7 +1807,7 @@ var ASM_CONSTS = {
     var apiName = UTF8ToString($0);
     var url = "";
     if (apiName === "server") {
-      url = emscriptenvars?.apiUrl || "";
+      url = /* emscriptenvars?.apiUrl  || */ "";
       // TODO: figure out the API URL
     } else if (apiName === "servicelayer") {
       url = Module["ksdk.slayerApiUrl"] || "";
