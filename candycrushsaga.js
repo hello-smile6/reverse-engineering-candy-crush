@@ -902,9 +902,9 @@ var ASM_CONSTS = {
     Module.idbfsSyncNeeded = true;
   },
   29130: function () {
-    var version =
-      king && king.ff ? king.ff.Engine.getAppVersion() : "unknown_version";
-    return allocate(intArrayFromString(String(version)), "i8", ALLOC_STACK);
+    // var version =
+      // king && king.ff ? king.ff.Engine.getAppVersion() : "unknown_version";
+    return allocate(intArrayFromString(String(king.version)), "i8", ALLOC_STACK);
   },
   29293: function ($0) {
     var callback = $0;
