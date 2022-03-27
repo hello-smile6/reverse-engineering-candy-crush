@@ -1810,7 +1810,7 @@ var ASM_CONSTS = {
       url = /* emscriptenvars?.apiUrl  || */ "https://cors-anywhere.9pfs.repl.co/king-candycrush-prod.secure2.footprint.net/";
       // TODO: figure out the API URL
     } else if (apiName === "servicelayer") {
-      url = Module["ksdk.slayerApiUrl"] || "";
+      url = Module["ksdk.slayerApiUrl"] || "https://cors-anywhere.9pfs.repl.co/king-candycrush-prod.secure2.footprint.net/";
     } else {
       Module.printErr("Unknown API '" + apiName + "'.");
     }
