@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<canvas id="canvas" width="800" height="600"></canvas>
+<script src="sdk.min.js" type="module"></script>
+<script src="candycrushsaga.js"></script>
+
+<div id="content"></div>
+
+<script>
+    function mergeLists(obj1, obj2){
+        var ret = {};
+        for (var i in obj1) {
+          ret[i] = obj1[i];
+        }
+        for (var j in obj2) {
+          ret[j] = obj2[j];
+        }
+        return ret;
+    };
+
+    function getChromeVersion() {
+        var raw = navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./);
+        return raw ? parseInt(raw[2], 10) : -1;
+    }
+
+    function userHasFlash() {
+        for (var i in navigator.plugins) {
+            if (navigator.plugins[i].name && navigator.plugins[i].name.toString().indexOf('Flash') > -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function userHasWebGl() {
+        // Check for the WebGL rendering context
+        if ( !! window.WebGLRenderingContext) {
+            var canvas = document.createElement("canvas"),
+                names = ["webgl", "experimental-webgl", "moz-webgl", "webkit-3d"],
+                context = false;
+
+            for (var i in names) {
+                try {
+                    context = canvas.getContext(names[i]);
+                    if (context && typeof context.getParameter === "function") {
+                        // WebGL is enabled.
+                        return true;
+                    }
+                } catch (e) {}
+            }
+
+            // WebGL is supported, but disabled.
+            return false;
+        }
+        // WebGL not supported.
+        return false;
+    };
+
+    function fatalErrorEncountered() {
+        document.getElementById("gameContainer").style.display="none";
+        document.getElementById("incompatibilityContainer").style.display="table";
+        document.getElementById("view-fatal").style.display="block";
+    }
+
+    function outOfMemoryErrorEncountered() {
+        document.getElementById("gameContainer").style.display="none";
+        document.getElementById("incompatibilityContainer").style.display="table";
+        document.getElementById("view-fatal").style.display="block";
+    }
+
+    function showIncompatibilityScreen(canvasParameters) {
+        document.getElementById("gameContainer").style.display="none";
+        document.getElementById("incompatibilityContainer").style.display="table";
+
+        var canvasParametersForPlatform = getCanvasParametersForPlatform(canvasParameters);
+        var compatibilityStatus = canvasParametersForPlatform.browserCompatibilityStatus;
+        var showBrowserCompatibilityErrorInCrashalitics = canvasParametersForPlatform.showBrowserIncompatibleErrorInCrashanalitics;
+
+        if (canvasParametersForPlatform.trackBrowserNotCompatibleInCrashAnalytics && compatibilityStatus != BROWSER_COMPATIBILITY_OK){
+            var message = canvasParameters.requestedPlatform + "-" + compatibilityStatus;
+            trackInCompatibilityError(canvasParametersForPlatform.appVersion , message);
+        }
+    }
+
+    function generateUUID() { // Public Domain/MIT
+        var d = new Date().getTime();
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+            d += performance.now();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
+
+    function trackCanvasManagerCheckpoint(commonParameters, checkpoint) {
+        var funnelId = window.TrackingFunnelId || (window.TrackingFunnelId = generateUUID());
+        var rpc = new JsonRpcEndpoint("/rpc/ClientApi" + (location.search || ""));
+        rpc.remoteCall("TrackingApi.track", [
+            commonParameters.signInSourceId,
+            0,  // id
+            "", // cookie
+            {
+                type: 7600, // CanvasManagerCheckpoint
+                parameters: [
+                    commonParameters.coreUserId,    // core user id
+                    funnelId,                       // tracking id
+                    checkpoint,                     // string checkpoint
+                    Date.now(),                     // timestamp
+                ]
+            }
+        ]);
+    }
+
+    function trackInCompatibilityError(commonParameters, appVersion, errorMessage){
+        var NO_INSTALL_ID = "";
+        var rpc = new JsonRpcEndpoint("/rpc/ClientApi" + (location.search || ""));
+        rpc.remoteCall("AppClientHealthTracking.trackCrashReport2", [
+                            commonParameters.signInSourceId,
+                            commonParameters.coreUserId,
+                            Date.now(),
+                            NO_INSTALL_ID,
+                            navigator.userAgent,
+                            appVersion,
+                            navigator.oscpu ? navigator.oscpu : navigator.platform,
+                            errorMessage,
+                            "UnsupportedBrowser"]);
+    }
+
+    function compileIndexTemplate(canvasParameters, callback) {
+        $('#templateScript').load('/plataforma/canvas/index_template.html', function () {
+            var source = $("#indexTemplate").html();
+            var template = Handlebars.compile(source);
+            var indexTemplateParameters = mergeLists(getCanvasParametersForPlatform(canvasParameters), canvasParameters.commonParameters);
+            $('#content').replaceWith(template(indexTemplateParameters));
+            callback();
+        })
+    }
+
+    function loadCss(path, onDone) {
+        var style = document.createElement('style');
+        style.setAttribute("type", "text/css");
+        $('head').append(style);
+        $(style).load(path, onDone);
+    }
+
+    function isKingComRequest() {
+        var queryParameterName = 'socialContainer';
+        if (queryParameterName = (new RegExp('[?&]' + encodeURIComponent(queryParameterName) + '=([^&]*)')).exec(location.search)) {
+            var kingcomParam = decodeURIComponent(queryParameterName[1]);
+            return kingcomParam != null && kingcomParam == 'kingdom';
+        }
+        return false;
+    }
+
+    function loadScript(url, success) {
+        var d = document.createElement("script");
+        d.setAttribute("type", "text/javascript");
+        d.setAttribute("crossorigin", "anonymous");
+        d.setAttribute("src", url);
+        d.onload = d.onreadystatechange = success;
+        document.head.appendChild(d);
+    }
+
+    function getCanvasParametersForPlatform(canvasParameters) {
+        if (isRequestedPlatformFictionFactory(canvasParameters)) {
+            return canvasParameters.fictionFactoryParameters;
+        }
+        if (isRequestedPlatformUnity(canvasParameters)) {
+            return canvasParameters.unity3dParameters;
+        }
+        if (isRequestedPlatformNone(canvasParameters)) {
+            return canvasParameters.platformNoneParameters;
+        }
+    }
+
+    PLATFORM_FLASH = 'FLASH'
+    PLATFORM_FICTION_FACTORY = 'FICTION_FACTORY'
+    PLATFORM_UNITY = 'UNITY3D';
+    PLATFORM_NONE = 'NONE';
+    PLATFORM_DEFOLD = 'DEFOLD'
+
+    BROWSER_COMPATIBILITY_OK = 'OK';
+    function isRequestedPlatformFlash(canvasParameters) {
+        return canvasParameters.requestedPlatform == PLATFORM_FLASH;
+    }
+    function isRequestedPlatformFictionFactory(canvasParameters) {
+        return canvasParameters.requestedPlatform == PLATFORM_FICTION_FACTORY;
+    }
+    function isRequestedPlatformUnity(canvasParameters) {
+        return canvasParameters.requestedPlatform == PLATFORM_UNITY;
+    }
+    function isRequestedPlatformDefold(canvasParameters) {
+        return canvasParameters.requestedPlatform == PLATFORM_DEFOLD;
+    }
+    function isRequestedPlatformNone(canvasParameters) {
+        return canvasParameters.requestedPlatform == PLATFORM_NONE;
+    }
+
+
+    function registerHandlebarHelpers() {
+        Handlebars.registerHelper('ifEquals', function(arg1, arg2, options) {
+            return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
+        });
+        Handlebars.registerHelper('sum', function(arg1, arg2, options) {
+            return arg1 + arg2;
+        });
+        Handlebars.registerHelper('isAorB', function(arg1, arg2 , arg3, options) {
+            return (arg1 == arg2 || arg1 == arg3) ? options.fn(this) : options.inverse(this);
+        });
+
+        Handlebars.registerHelper('format', function (context) {
+            var html = context;
+            return new Handlebars.SafeString(html);
+        });
+        Handlebars.registerHelper('max', function(arg1, arg2, options) {
+            return arg1 > arg2?arg1:arg2;
+        });
+        Handlebars.registerHelper('min', function(arg1, arg2, options) {
+            return arg1 < arg2?arg1:arg2;
+        });
+        Handlebars.registerHelper('divideCapped', function(arg1, arg2,cap, options) {
+            if (arg1==0||arg2==0){
+                return 0;
+            }
+            var ret = arg1/arg2;
+            return ret>cap?cap:ret;
+        });
+        Handlebars.registerHelper('ifLessGetString', function(arg1, arg2, positiveStr, negativeStr, options) {
+            return arg1<arg2?positiveStr:negativeStr;
+        });
+    }
+
+    function registerCanvasConfig(canvasParameters) {
+        if (canvasParameters.commonParameters.isGetCanvasConfigEnabled) {
+            window.getCanvasConfig = function () {
+                return JSON.stringify(
+                    {
+                        "host": canvasParameters.commonParameters.hostName,
+                        "appId": canvasParameters.commonParameters.facebookAppId,
+                        "port": canvasParameters.commonParameters.port,
+                        "live": canvasParameters.commonParameters.isLive
+                    }
+                )
+            }
+        }
+    }
+
+    function getQueryParam(param) {
+        var params = window.location.search.substring(1).split("&");
+        for (var i=0; i < params.length; i++) {
+            var pair = params[i].split("=");
+            if (pair[0] === param) {
+                return pair[1];
+            }
+        }
+        return null;
+    }
+</script>
+
+
+<script>
+    trackCanvasManagerCheckpoint({ signInSourceId: 0, coreUserId: 0 }, "LoadedIndex");
+
+    $(document).ready(function () {
+        trackCanvasManagerCheckpoint({ signInSourceId: 0, coreUserId: 0 }, "DocumentReady");
+        $.ajaxSetup({'cache': true});
+        Window.isKingCom = isKingComRequest();
+        var _cv = getQueryParam("_cv") || "";
+        var rpc = new JsonRpcEndpoint("/rpc/ClientApi" + (location.search || ""));
+        rpc.remoteCall("CanvasApi.getCanvasParameters2", [location.protocol, navigator.userAgent, userHasWebGl(),
+                userHasFlash(), screen.width, screen.height, window.outerWidth, window.outerHeight,
+                Window.isKingCom, getChromeVersion(), _cv],
+                function (canvasParameters) {
+                    canvasParameters.commonParameters.skipAccessTokenFromParams = function () {
+                        queryParam = getQueryParam("_stca");
+                        return queryParam ? true : false;
+                    }();
+                    registerCanvasConfig(canvasParameters);
+                    trackCanvasManagerCheckpoint(canvasParameters.commonParameters, "LoadedCanvasParameters");
+                    loadScript(canvasParameters.commonParameters.handlebarsJsScriptFullUrl, function () {
+                        trackCanvasManagerCheckpoint(canvasParameters.commonParameters, "LoadedHandleBars");
+                        console.log(canvasParameters);
+                        window.canvasParameters = canvasParameters;
+                        registerHandlebarHelpers();
+                        compileIndexTemplate(canvasParameters , function(){
+                            loadScript(canvasParameters.commonParameters.kingJsScriptFullUrl, function () {
+                                trackCanvasManagerCheckpoint(canvasParameters.commonParameters, "LoadedKingJS");
+                                kingInit(canvasParameters.commonParameters,
+                                        canvasParameters.requestedPlatform,
+                                        getCanvasParametersForPlatform(canvasParameters).gameWidth,
+                                        getCanvasParametersForPlatform(canvasParameters).gameHeight);
+
+                                if (!Window.isKingCom && !isRequestedPlatformNone(canvasParameters)) {
+                                    initializeKingBling(canvasParameters.commonParameters,
+                                            getCanvasParametersForPlatform(canvasParameters).gameWidth,
+                                            getCanvasParametersForPlatform(canvasParameters).gameHeight);
+
+                                    showSocialButtons(canvasParameters);
+                                }
+                                var compatibilityStatus = getCanvasParametersForPlatform(canvasParameters).browserCompatibilityStatus;
+                                if (compatibilityStatus == BROWSER_COMPATIBILITY_OK){
+                                    showGame(canvasParameters)
+                                }else{
+                                    showIncompatibilityScreen(canvasParameters);
+                                }
+                            });
+                        });
+                    });
+                });
+    });
+
+
+    function showGame(canvasParameters) {
+        if (isRequestedPlatformFictionFactory(canvasParameters)) {
+            trackCanvasManagerCheckpoint(canvasParameters.commonParameters, "ShowFiction");
+            loadScript(canvasParameters.fictionFactoryParameters.gameTemplateLoaderUrl, function () {
+                trackCanvasManagerCheckpoint(canvasParameters.commonParameters, "LoadedLoader");
+                loadFictionFactory(canvasParameters.commonParameters, canvasParameters.fictionFactoryParameters);
+            });
+            return;
+        }
+
+        if (isRequestedPlatformUnity(canvasParameters)) {
+            trackCanvasManagerCheckpoint(canvasParameters.commonParameters, "ShowUnity");
+            loadScript(canvasParameters.unity3dParameters.gameTemplateLoaderUrl, function () {
+                trackCanvasManagerCheckpoint(canvasParameters.commonParameters, "LoadedLoader");
+                loadUnity3d(canvasParameters.commonParameters, canvasParameters.unity3dParameters);
+            });
+            return;
+        }
+
+        console.log("Platform none");
+    }
+
+    function showSocialButtons(canvasParameters) {
+        if (canvasParameters.commonParameters.socialButtonsParameters == null){
+            return;
+        }
+
+        var combinedParametersForSocialButtons = mergeLists(getCanvasParametersForPlatform(canvasParameters), canvasParameters.commonParameters);
+        loadScript(combinedParametersForSocialButtons.socialButtonsParameters.socialButtonsScriptUrl,function () {
+            showSocialButtons(combinedParametersForSocialButtons);
+        });
+    }
+
+    //################################################################################################
+    // Kingbling
+    //################################################################################################
+    function kingInit(commonParameters, requestedPlatform, width, height) {
+        king.debugMode = false;
+        king.init({
+            facebook: {
+                appId: commonParameters.facebookAppId + '',
+                appUrl: commonParameters.facebookCanvasPageFullUrl,
+                useFloating: false,
+                useUserCurrencySystem: true,
+                fallbackScriptUrl: "https://d2wh90un5k05l1.cloudfront.net/sdk.js",
+                useFallbackScriptUrl: true,
+                skipAccessTokenFromParams: commonParameters.skipAccessTokenFromParams,
+                accessToken: commonParameters.facebookAccessToken,
+            },
+            kingdom: {
+                appId: commonParameters.kingdomApplicationId + '',
+                appUrl: commonParameters.kingdomCanvasPageFullUrl + '',
+                useFloating: false,
+                sessionKey: commonParameters.sessionKey,
+                canvasSize: {width: width, height: height}
+            },
+            gameId: 'game', //name of the <div name="game"> where the game object is embedded.
+            userId: commonParameters.coreUserId + "",
+            sessionKey: commonParameters.sessionKey,
+            cdn: commonParameters.cdnUrl,
+            storage: 20 * 1024 * 1024,
+            locale: commonParameters.locale
+        });
+
+        king.util.callAfterInit(function (event) {
+            (requestedPlatform == PLATFORM_FLASH) && FB.Canvas.Prefetcher.setCollectionMode(FB.Canvas.Prefetcher.COLLECT_MANUAL);
+        });
+    }
+
+    function initializeKingBling(commonParameters, gameWidth, gameHeight) {
+        $.ajax({
+            url: commonParameters.adsJsScriptUrl,
+            dataType: "script",
+            cache: true,
+
+            success: function (data, textStatus, jqXHR) {
+                myKingBling = new KingBling();
+                myKingBling.init(JSON.parse(commonParameters.adsInitData));
+                myKingBling.open(KingBlingModuleTypeMap.CROSSPROMO_BANNER_TOP, "topBanner", {width: gameWidth});
+                myKingBling.open(KingBlingModuleTypeMap.CROSSPROMO_BANNER_BOTTOM, "bottomBanner", {
+                    rotation: true,
+                    bottomBannerCallback: function (options) {
+                        if (options && options.height && window.FB && FB.Canvas) {
+                            FB.Canvas.setSize({height: gameHeight + options.height + 200});
+                        }
+                    },
+                    width: gameWidth
+                });
+            }
+        });
+        var kingLogoForBannerWidth = 124;
+        var carouselWidth = gameWidth - kingLogoForBannerWidth;
+        var navButtonWith = 32;
+        var contentBannerWith = carouselWidth - navButtonWith;
+        var customStyle = "#kbCrosspromoTopBannerCnt {width: " + gameWidth + "px !important;left: 0px !important;} #kbCrosspromoTopBannerCnt .carouselCnt {left: 100px !important;width: " + carouselWidth + "px !important;} .kbCrosspromoTopBannerCntCenter {width: " + contentBannerWith + "px !important;} #topBanner {margin-bottom : 10px}";
+        $('<style>' + customStyle + '</style>').appendTo(document.head);
+    }
