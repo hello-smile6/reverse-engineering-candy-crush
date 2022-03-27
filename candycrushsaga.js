@@ -1070,7 +1070,8 @@ var ASM_CONSTS = {
         "GetLanguage. Not languange found, default language setup " + language
       );
     }
-    return allocate(intArrayFromString(language), "i8", ALLOC_STACK);
+    return allocate(intArrayFromString("en"), "i8", ALLOC_STACK);
+    // Using english, we might add support for other langs later
   },
   33961: function () {
     var locale = "en_US";
