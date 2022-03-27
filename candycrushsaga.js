@@ -6848,8 +6848,8 @@ var Browser = {
           return;
         } else {
           if (e && typeof e === "object" && e.stack)
-            err("exception thrown: " + [e, e.stack]);
-          throw e;
+            console.log("exception thrown: " + [e, e.stack]);
+          // throw e;
         }
       }
       if (Module["postMainLoop"]) Module["postMainLoop"]();
