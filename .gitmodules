@@ -1,0 +1,3 @@
+[submodule "wasmdec"]
+	path = wasmdec
+	url = https://github.com/wwwg/wasmdec.git
