@@ -11076,7 +11076,7 @@ var GL = {
       }
     },
   createContext: function (canvas, webGLContextAttributes) {
-    if(!(canvas instanceof HTMLCanvasElement)) console.trace();console.log(canvas);debugger
+    if(!(canvas instanceof HTMLCanvasElement)) console.trace();console.log(canvas);// Fixed!!! debugger
     var ctx = canvas.getContext("webgl", webGLContextAttributes);
     if (!ctx) return 0;
     var handle = GL.registerContext(ctx, webGLContextAttributes);
