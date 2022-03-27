@@ -1,4 +1,5 @@
 var Module = typeof Module !== "undefined" ? Module : {};
+Module.canvas=document.getElementById("canvas");
 /* Fix bug
 hello-smile6.github.io/:1 
  Uncaught (in promise) TypeError: Module.printWarn is not a function
