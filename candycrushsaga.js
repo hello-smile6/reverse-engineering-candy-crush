@@ -38,6 +38,7 @@ fetch=function(url,options,...args) {
     if(url.includes("cors-anywhere.9pfs.repl.co/") && !(url.includes("king-candycrush-prod.secure2.footprint.net"))) {
         url=url.replace("cors-anywhere.9pfs.repl.co","cors-anywhere.9pfs.repl.co/king-candycrush-prod.secure2.footprint.net");
     };
+    url+="?s="+Module.ksdk.sessionKey;
     return _fetch(url,options,...args);
 };
 Module.core={
