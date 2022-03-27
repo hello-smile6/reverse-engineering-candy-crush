@@ -1,4 +1,21 @@
 var Module = typeof Module !== "undefined" ? Module : {};
+/* Fix bug
+hello-smile6.github.io/:1 
+ Uncaught (in promise) TypeError: Module.printWarn is not a function
+    at 34367 (candycrushsaga.js:1:23494)
+    at _emscripten_asm_const_iii (candycrushsaga.js:1:69671)
+    at /reverse-engineering…candycrushsaga.wasm
+    at /reverse-engineering…candycrushsaga.wasm
+    at /reverse-engineering…candycrushsaga.wasm
+    at /reverse-engineering…candycrushsaga.wasm
+    at Module._main (candycrushsaga.js:1:285646)
+    at callMain (candycrushsaga.js:1:333314)
+    at doRun (candycrushsaga.js:1:333892)
+    at run (candycrushsaga.js:1:334064)
+*/
+Module.printWarn = function (text) {
+    console.warn(text);
+};
 var moduleOverrides = {};
 var key;
 for (key in Module) {
