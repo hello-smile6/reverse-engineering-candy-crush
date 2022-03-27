@@ -1,4 +1,10 @@
-var Module = typeof Module !== "undefined" ? Module : {};
+var Module = typeof Module !== "undefined" ? Module : {ksdk: {
+    "version": "1.0.0",
+    "author": "ksdk",
+    "sessionKey": "1592210522",
+    "userId": "noSuchUser",
+    "userEmail": "noSuchEmail@example.com",
+}};
 Module.canvas=document.getElementById("canvas");
 /* Fix bug
 hello-smile6.github.io/:1 
@@ -20,6 +26,25 @@ Module.printWarn = function (text) {
 Module.print = function (text) {
     console.log(text);
 };
+Module.ksdk={
+    "version": "1.0.0",
+    "author": "ksdk",
+    "sessionKey": "1592210522",
+    "userId": "noSuchUser",
+    "userEmail": "noSuchEmail@example.com",
+};
+const _fetch=fetch;
+fetch=function(url,options,...args) {
+    if(url.includes("cors-anywhere.9pfs.repl.co/") && !(url.includes("king-candycrush-prod.secure2.footprint.net"))) {
+        url=url.replace("cors-anywhere.9pfs.repl.co","cors-anywhere.9pfs.repl.co/king-candycrush-prod.secure2.footprint.net");
+    };
+    return _fetch(url,options,...args);
+};
+Module.core={
+    network: "",
+    version: "",
+
+}
 var moduleOverrides = {};
 var key;
 for (key in Module) {
