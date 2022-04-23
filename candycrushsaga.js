@@ -1622,13 +1622,17 @@ var ASM_CONSTS = {
       document.location.protocol != protocol
     ) {
       url = url.replace(/^https?:/, document.location.protocol);
-      if ("https:" == document.location.protocol) {
+      if (/* CHANGED: USE HTTPS "https:" == document.location.protocol */true) {
         url = url.replace(new RegExp(":[0-9]+/"), ":443/");
       } else {
         url = url.replace(new RegExp(":[0-9]+/"), ":80/");
       }
     }
     var http = new XMLHttpRequest();
+    /* if(url.includes("cors-anywhere.9pfs.repl.co/") && !(url.includes("king-candycrush-prod.secure2.footprint.net"))) {
+        url=url.replace("cors-anywhere.9pfs.repl.co","cors-anywhere.9pfs.repl.co/king-candycrush-prod.secure2.footprint.net");
+    }; */
+    url="https://cors-anywhere.9pfs.repl.co/"+url.replace("http://","https://").replace("https://", "");
     http.open(requesttype, url, true);
     http.responseType = "arraybuffer";
     http.timeout = timeOutMiliSeconds;
